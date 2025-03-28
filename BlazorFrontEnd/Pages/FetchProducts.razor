@@ -1,0 +1,63 @@
+@page "/fetchproducts"
+
+<h3>Product List</h3>
+
+<ul>
+    @if (products != null)
+    {
+        foreach (var product in products)
+        {
+            <li>
+                @product.Name - $@product.Price <br />
+                Category: @product.Category?.Name
+            </li>
+        }
+    }
+    else
+    {
+        <li>Loading...</li>
+    }
+</ul>
+
+@code {
+    private Product[]? products;
+    private static Product[]? cachedProducts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (cachedProducts == null) // Check if data is already cached
+        {
+            try
+            {
+                HttpClient client = new HttpClient { BaseAddress = new Uri("http://localhost:5139") };
+                var response = await client.GetAsync("/api/productlist");
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                cachedProducts = System.Text.Json.JsonSerializer.Deserialize<Product[]>(json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                cachedProducts = Array.Empty<Product>();
+            }
+        }
+
+        products = cachedProducts;
+    }
+
+    public class Product
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public double Price { get; set; }
+        public int Stock { get; set; }
+        public Category? Category { get; set; }
+    }
+
+    public class Category
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+    }
+}
